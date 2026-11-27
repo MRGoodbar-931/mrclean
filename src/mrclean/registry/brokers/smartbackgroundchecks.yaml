@@ -1,0 +1,16 @@
+id: smartbackgroundchecks
+name: SmartBackgroundChecks
+url: https://www.smartbackgroundchecks.com
+category: people_search
+priority: 1
+covers: [PeopleFinders]
+search:
+  method: manual
+optout:
+  method: web_form
+  url: https://www.smartbackgroundchecks.com/optout
+  requires: [listing_url]
+  notes: Find your listing first. Likely also removes you from PeopleFinders.
+sources:
+  - https://github.com/yaelwrites/Big-Ass-Data-Broker-Opt-Out-List
+last_verified: 2026-11-26

@@ -1,0 +1,22 @@
+id: acxiom
+name: Acxiom
+url: https://www.acxiom.com
+category: upstream
+priority: 1
+search:
+  method: manual
+optout:
+  method: web_form
+  url: https://www.acxiom.com/optout/
+  phone: "877-774-2094"
+  alternatives: [phone]
+  requires: [full_name, address, email]
+  notes: >-
+    Upstream marketing-data aggregator that feeds many downstream sites; there is no
+    free way to see your own record, so opt out blind. Required fields not stated by
+    the source; confirm on the live form.
+relisting:
+  rescan_days: 180
+sources:
+  - https://github.com/yaelwrites/Big-Ass-Data-Broker-Opt-Out-List
+last_verified: 2026-11-26

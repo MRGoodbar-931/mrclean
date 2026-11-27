@@ -1,0 +1,16 @@
+id: fastpeoplesearch
+name: FastPeopleSearch
+url: https://www.fastpeoplesearch.com
+category: people_search
+priority: 2
+search:
+  method: manual
+optout:
+  method: web_form
+  url: https://www.fastpeoplesearch.com/optout
+  requires: [listing_url]
+  captcha: true
+  notes: Find your listing first.
+sources:
+  - https://github.com/yaelwrites/Big-Ass-Data-Broker-Opt-Out-List
+last_verified: 2026-11-26

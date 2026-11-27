@@ -46,6 +46,8 @@
 !/docs/**/*.png
 identities*
 profile*
+!/src/mrclean/profile.py
+!/tests/test_profile.py
 pii*
 !/src/mrclean/pii_guard.py
 !/tests/test_pii_guard.py

@@ -1,0 +1,19 @@
+id: spokeo
+name: Spokeo
+url: https://www.spokeo.com
+category: people_search
+priority: 1
+covers: [FreePeopleDirectory]
+search:
+  method: manual
+optout:
+  method: web_form
+  url: https://www.spokeo.com/optout
+  requires: [listing_url, email]
+  verification: [email_link]
+  notes: >-
+    Find your profile first and paste its URL; repeat per profile. Reportedly keeps
+    removed data visible to paid accounts.
+sources:
+  - https://github.com/yaelwrites/Big-Ass-Data-Broker-Opt-Out-List
+last_verified: 2026-11-26

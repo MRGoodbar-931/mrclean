@@ -1,0 +1,15 @@
+id: thatsthem
+name: That's Them
+url: https://thatsthem.com
+category: people_search
+priority: 1
+search:
+  method: manual
+optout:
+  method: web_form
+  url: https://thatsthem.com/optout
+  requires: [listing_url]
+  notes: Find your listing first. Ignore the Spokeo identity-theft link on the page.
+sources:
+  - https://github.com/yaelwrites/Big-Ass-Data-Broker-Opt-Out-List
+last_verified: 2026-11-26

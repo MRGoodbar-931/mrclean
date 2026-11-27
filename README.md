@@ -5,8 +5,9 @@ people-search sites, and drives its removal through each broker's opt-out
 process. It tracks what it found and what it requested, so later runs catch
 relistings and newly added brokers.
 
-> **Status: pre-alpha scaffold.** The safety layer exists. Scanning and removal
-> are being designed (see [BACKLOG.md](BACKLOG.md)) and aren't implemented yet.
+> **Status: pre-alpha (milestone 1).** The safety layer, the encrypted store,
+> the identity profile and a 10-broker registry exist. Scanning and removal come
+> in milestones 2 and 3 (see [BACKLOG.md](BACKLOG.md)).
 
 ## Why another one?
 
@@ -29,7 +30,7 @@ the worst failure it can have. Defense in depth:
 | PII pre-commit guard | Checks staged files against salted HMAC digests of **your** identifiers. It fails closed when unarmed and never prints the matched value. |
 | gitleaks | Generic secret scanning, in pre-commit and CI. |
 | Redacted logging | Emails, phone numbers and registered identity strings are scrubbed from every log record, including tracebacks. |
-| Encrypted storage | *Planned:* the identity profile and scan results are encrypted at rest. |
+| Encrypted storage | The profile and all state live in a SQLCipher database. Its key is held in the OS credential store (Windows Credential Manager, Keychain, Secret Service), never on disk in plaintext. |
 
 See [SECURITY.md](SECURITY.md) for the threat model and how to report issues.
 
@@ -41,9 +42,12 @@ cd mrclean
 python -m venv .venv && . .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 pre-commit install
-mrclean init            # creates the local data dir
-mrclean pii register    # arm the commit guard with your identifiers (hidden input)
-mrclean doctor          # verify the guards
+mrclean init               # data dir + encrypted store (key goes to your OS credential store)
+mrclean key backup         # save the recovery key in a password manager
+mrclean profile add name   # who to look for; also arms the PII commit guard
+mrclean profile add address
+mrclean doctor             # verify every guard
+mrclean registry list      # brokers, in the order they'll be worked
 pytest
 ```
 
