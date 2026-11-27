@@ -1,0 +1,29 @@
+# Install once per clone:  pre-commit install
+# The PII guard runs from your local install of mrclean (pip install -e .)
+# and checks staged files against salted hashes of YOUR identifiers, which
+# live in the data dir outside the repo. It fails closed: if you haven't
+# registered identifiers yet, every commit is blocked.
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+        args: ["--maxkb=200"]
+      - id: detect-private-key
+      - id: check-merge-conflict
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+      - id: ruff-format
+  - repo: local
+    hooks:
+      - id: mrclean-pii-guard
+        name: mrclean PII guard (hashed identifier match)
+        entry: python -m mrclean.pii_guard scan
+        language: system
+        types: [text]

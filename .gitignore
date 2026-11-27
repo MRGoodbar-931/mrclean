@@ -1,0 +1,58 @@
+# ---------------------------------------------------------------------------
+# DENY BY DEFAULT.
+# Everything is ignored unless it is explicitly allow-listed below.
+# MRclean handles personal data; a file that isn't on this list never gets
+# committed, even by accident. To add a new top-level path, allow-list it here
+# on purpose, in its own reviewed commit.
+# ---------------------------------------------------------------------------
+/*
+
+!/.gitignore
+!/.gitattributes
+!/.pre-commit-config.yaml
+!/.gitleaks.toml
+!/pyproject.toml
+!/README.md
+!/CHANGELOG.md
+!/BACKLOG.md
+!/SECURITY.md
+!/LICENSE
+!/.github/
+!/docs/
+!/src/
+!/tests/
+
+# Even inside allow-listed dirs, never track data-shaped or secret-shaped files.
+*.db
+*.sqlite
+*.sqlite3
+*.age
+*.enc
+*.key
+*.pem
+*.env
+.env*
+*.log
+*.csv
+*.xlsx
+*.har
+*.eml
+*.msg
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.html
+!/docs/**/*.png
+identities*
+profile*
+pii*
+!/src/mrclean/pii_guard.py
+!/tests/test_pii_guard.py
+secrets*
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
