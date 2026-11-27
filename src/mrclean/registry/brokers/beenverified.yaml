@@ -12,7 +12,8 @@ optout:
   requires: [first, last, state, email]
   verification: [email_link]
   notes: >-
-    Only one opt-out per email address. Property records have a separate form at
+    Required fields not stated by the source; the requires list is a guess, so confirm it
+    on the live form. Only one opt-out per email address. Property records have a separate form at
     https://www.beenverified.com/app/optout/address-search.
 sources:
   - https://github.com/yaelwrites/Big-Ass-Data-Broker-Opt-Out-List
