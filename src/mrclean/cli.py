@@ -27,7 +27,7 @@ log = logging.getLogger("mrclean")
 def _cmd_init(_: argparse.Namespace) -> int:
     data_dir = resolve_data_dir(create=True)
     (data_dir / "logs").mkdir(exist_ok=True)
-    with Store.open(create=True):
+    with Store.open(data_dir / DB_FILE, create=True):
         pass
     print(f"Data directory: {data_dir}")
     print("Encrypted store ready; its key is in your OS credential store.")
@@ -39,19 +39,27 @@ def _cmd_init(_: argparse.Namespace) -> int:
 def _cmd_doctor(_: argparse.Namespace) -> int:
     ok = True
 
-    def report(good: bool, msg: str) -> None:
+    def report(good: bool, msg: str, fix: str = "") -> None:
         nonlocal ok
         ok &= good
-        print(f"{'OK ' if good else 'ERR'} {msg}")
+        print(f"OK  {msg}" if good else f"ERR {fix or msg}")
 
     data_dir = resolve_data_dir()
     report(True, f"data dir is outside any git repo and sync folder: {data_dir}")
-    report((data_dir / pii_guard.DIGEST_FILE).is_file(), "PII commit guard is armed")
+    report(
+        (data_dir / pii_guard.DIGEST_FILE).is_file(),
+        "PII commit guard is armed",
+        "PII commit guard is NOT armed: run `mrclean profile add name`",
+    )
     try:
         with Store.open() as store:
             profile = load_profile(store)
         report(True, "encrypted store opens with the key from the credential store")
-        report(bool(profile.names), f"profile has {len(profile.names)} name(s)")
+        report(
+            bool(profile.names),
+            f"profile has {len(profile.names)} name(s)",
+            "profile has no names yet: run `mrclean profile add name`",
+        )
     except StoreError as exc:
         report(False, str(exc))
     try:

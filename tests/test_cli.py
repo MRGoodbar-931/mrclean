@@ -51,3 +51,13 @@ def test_restore_rejects_wrong_key(data_dir, fake_keyring, monkeypatch):
     monkeypatch.setattr("getpass.getpass", lambda _p="": "00" * 32)
     assert cli.main(["key", "restore"]) == 2
     assert not fake_keyring.items
+
+
+def test_doctor_failure_lines_say_what_is_wrong(data_dir, fake_keyring, capsys):
+    cli.main(["init"])
+    capsys.readouterr()
+    assert cli.main(["doctor"]) == 1
+    out = capsys.readouterr().out
+    assert "ERR PII commit guard is NOT armed" in out
+    assert "ERR profile has no names yet" in out
+    assert "ERR PII commit guard is armed" not in out
