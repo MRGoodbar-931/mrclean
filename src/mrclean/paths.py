@@ -28,8 +28,11 @@ _SYNC_MARKERS = ("onedrive", "dropbox", "google drive", "googledrive", "icloud",
 def default_data_dir() -> Path:
     """Return the per-user, non-synced default location for MRclean data."""
     if sys.platform == "win32":
-        base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
-        return Path(base) / APP_NAME
+        # Not %LOCALAPPDATA%: packaged (MSIX) apps such as the Claude desktop app
+        # get AppData writes silently redirected into a per-app container, so
+        # the same path would point at different folders depending on which
+        # process asks. The profile root isn't virtualised.
+        return Path.home() / f".{APP_NAME}"
     if sys.platform == "darwin":
         return Path.home() / "Library" / "Application Support" / APP_NAME
     base = os.environ.get("XDG_DATA_HOME") or str(Path.home() / ".local" / "share")
@@ -61,6 +64,20 @@ def _sync_marker(path: Path) -> str | None:
     return None
 
 
+def _is_msix_redirect(path: Path) -> bool:
+    """True if ``path`` lies in a packaged app's virtualised AppData container.
+
+    Windows redirects AppData writes from MSIX-packaged apps (e.g. the Claude
+    desktop app) to ``...\\AppData\\Local\\Packages\\<app>\\LocalCache\\...``.
+    Once the folder exists, ``resolve()`` from inside the app returns that path.
+    """
+    parts = [part.lower() for part in path.parts]
+    for i in range(len(parts) - 2):
+        if parts[i] == "packages" and parts[i + 2] == "localcache":
+            return True
+    return False
+
+
 def check_data_dir_safe(path: Path, *, allow_synced: bool = False) -> Path:
     """Validate ``path`` as a data directory and return it resolved.
 
@@ -75,6 +92,13 @@ def check_data_dir_safe(path: Path, *, allow_synced: bool = False) -> Path:
             f"Data dir {resolved} is inside the git work tree at {repo}. "
             f"Personal data must never live in a repository. Set {ENV_DATA_DIR} "
             "to a location outside any repo."
+        )
+    if _is_msix_redirect(resolved):
+        raise UnsafeDataDirError(
+            f"Data dir {resolved} is inside a packaged-app container (MSIX AppData "
+            "redirection). Other programs, including git hooks started from a normal "
+            f"terminal, would see a different folder. Set {ENV_DATA_DIR} to a folder "
+            "outside AppData."
         )
     marker = _sync_marker(resolved)
     if marker and not allow_synced:

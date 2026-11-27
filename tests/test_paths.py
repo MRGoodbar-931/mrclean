@@ -56,3 +56,41 @@ def test_real_checkout_is_refused():
         pytest.skip("not running from a git checkout")
     with pytest.raises(UnsafeDataDirError):
         check_data_dir_safe(repo_root / "data")
+
+
+def test_link_into_repo_is_refused(tmp_path):
+    (tmp_path / "repo" / ".git").mkdir(parents=True)
+    (tmp_path / "repo" / "data").mkdir()
+    link = tmp_path / "data-link"
+    try:
+        link.symlink_to(tmp_path / "repo" / "data", target_is_directory=True)
+    except OSError:
+        pytest.skip("symlinks not permitted here")
+    with pytest.raises(UnsafeDataDirError, match="git work tree"):
+        check_data_dir_safe(link)
+
+
+def test_refuses_msix_redirected_appdata(tmp_path):
+    redirected = (
+        tmp_path
+        / "AppData"
+        / "Local"
+        / "Packages"
+        / "Claude_pzs8sxrjxfjjc"
+        / "LocalCache"
+        / "Local"
+        / "mrclean"
+    )
+    with pytest.raises(UnsafeDataDirError, match="packaged-app container"):
+        check_data_dir_safe(redirected)
+
+
+def test_ordinary_packages_folder_is_fine(tmp_path):
+    assert check_data_dir_safe(tmp_path / "Packages" / "mrclean")
+
+
+def test_windows_default_avoids_appdata(monkeypatch):
+    import mrclean.paths as paths
+
+    monkeypatch.setattr(paths.sys, "platform", "win32")
+    assert "AppData" not in str(paths.default_data_dir())

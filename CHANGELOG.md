@@ -6,6 +6,13 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+- Windows: the default data dir moved from `%LOCALAPPDATA%\mrclean` to
+  `%USERPROFILE%\.mrclean`. Packaged (MSIX) apps such as the Claude desktop app
+  have AppData writes silently redirected into a private container, so a terminal
+  and an app-launched process saw two different data dirs. Data dirs inside an
+  MSIX `Packages\<app>\LocalCache` container are now refused.
+
 ### Added
 - Project scaffold: packaging, CLI entry point (`mrclean init`, `doctor`, `pii`).
 - Data dir guard: refuses data dirs inside a git work tree or cloud-sync folder.
