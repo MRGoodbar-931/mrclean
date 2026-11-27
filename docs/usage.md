@@ -12,7 +12,7 @@
 
 ## Data directory
 
-The default is per-user and not synced: `%LOCALAPPDATA%\mrclean` on Windows,
+The default is per-user and not synced: `%USERPROFILE%\.mrclean` on Windows,
 `~/Library/Application Support/mrclean` on macOS and `$XDG_DATA_HOME/mrclean`
 on Linux. Override it with `MRCLEAN_DATA_DIR`. The override goes through the
 same checks: a path inside a git repo or a OneDrive/Dropbox/Google Drive/iCloud

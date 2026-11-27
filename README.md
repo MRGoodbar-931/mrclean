@@ -24,7 +24,7 @@ the worst failure it can have. Defense in depth:
 
 | Layer | What it does |
 | --- | --- |
-| Data dir outside the repo | Data lives in `%LOCALAPPDATA%\mrclean` / `~/Library/Application Support/mrclean` / `~/.local/share/mrclean`. The tool **refuses to run** if the data dir is inside any git work tree or a cloud-sync folder. |
+| Data dir outside the repo | Data lives in `%USERPROFILE%\.mrclean` / `~/Library/Application Support/mrclean` / `~/.local/share/mrclean`. The tool **refuses to run** if the data dir is inside any git work tree or a cloud-sync folder. |
 | Deny-by-default `.gitignore` | Everything is ignored unless explicitly allow-listed. Data-shaped files (`*.db`, `*.csv`, `*.eml`, screenshots, etc.) stay ignored even inside allowed dirs. |
 | PII pre-commit guard | Checks staged files against salted HMAC digests of **your** identifiers. It fails closed when unarmed and never prints the matched value. |
 | gitleaks | Generic secret scanning, in pre-commit and CI. |
