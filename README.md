@@ -30,7 +30,7 @@ the worst failure it can have. Defense in depth:
 | PII pre-commit guard | Checks staged files against salted HMAC digests of **your** identifiers. It fails closed when unarmed and never prints the matched value. |
 | gitleaks | Generic secret scanning, in pre-commit and CI. |
 | Redacted logging | Emails, phone numbers and registered identity strings are scrubbed from every log record, including tracebacks. |
-| Encrypted storage | The profile and all state live in a SQLCipher database. Its key is held in the OS credential store (Windows Credential Manager, Keychain, Secret Service), never on disk in plaintext. |
+| Encrypted storage | The profile and all state live in a SQLite database that exists on disk only as one AES-256-GCM encrypted, tamper-evident file. Its key is held in the OS credential store (Windows Credential Manager, Keychain, Secret Service), never on disk in plaintext. |
 
 See [SECURITY.md](SECURITY.md) for the threat model and how to report issues.
 

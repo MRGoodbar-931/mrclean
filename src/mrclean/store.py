@@ -1,25 +1,36 @@
-"""Encrypted local state store (SQLCipher).
+"""Encrypted local state store.
 
-The database key is 32 random bytes kept in the OS credential store (Windows
-Credential Manager, macOS Keychain, Secret Service on Linux) through
-``keyring``. It never touches disk in plaintext, and scheduled runs can open
-the store without a passphrase.
+The store is an ordinary SQLite database that lives on disk only as one
+AES-256-GCM encrypted blob. MRclean decrypts it into memory on open and writes
+it back, re-encrypted with a fresh nonce, after every committed transaction.
+Writes are atomic (temp file, fsync, rename), so a crash leaves the previous
+version intact. GCM authenticates the file, so tampering or a wrong key is
+detected rather than producing garbage.
 
-The store refuses to open if the SQLite library in use isn't SQLCipher, so a
-broken install can't silently write plaintext.
+Why not SQLCipher: its Python bindings are a native extension that has lagged
+new Python releases on Windows. ``cryptography`` ships version-independent
+(abi3) wheels, so this works on any current CPython without a compiler.
+
+The 32-byte key lives in the OS credential store (Windows Credential Manager,
+macOS Keychain, Secret Service) via ``keyring`` and never touches disk in
+plaintext. Trade-off: while MRclean runs, the decrypted database is in process
+memory, which the OS may page to swap.
 """
 
 from __future__ import annotations
 
 import logging
+import os
 import secrets
+import sqlite3
 import sys
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Protocol
+from typing import IO, Protocol
 
-import sqlcipher3
+from cryptography.exceptions import InvalidTag
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 from mrclean.errors import MRcleanError
 from mrclean.paths import resolve_data_dir
@@ -30,10 +41,12 @@ DB_FILE = "mrclean.db"
 KEYRING_SERVICE = "mrclean"
 KEYRING_USER = "db-key"
 KEY_BYTES = 32
+MAGIC = b"MRCLEAN\x01"  # format id + version; authenticated as associated data
+NONCE_BYTES = 12
 
 
 class StoreError(MRcleanError):
-    """The store can't be opened safely (wrong key, missing key, not encrypted)."""
+    """The store can't be opened safely (wrong key, missing key, tampered, locked)."""
 
 
 class KeyProvider(Protocol):
@@ -65,7 +78,7 @@ class KeyringKeyProvider:
 
 
 class StaticKeyProvider:
-    """In-memory key, for tests and for restoring from a backup key."""
+    """In-memory key, for tests and for checking a backed-up key."""
 
     def __init__(self, key: bytes | None = None) -> None:
         self._key = key
@@ -91,12 +104,62 @@ MIGRATIONS: tuple[str, ...] = (
 )
 
 
-class Store:
-    """A thin wrapper over an encrypted SQLite connection."""
+def encrypt(key: bytes, plaintext: bytes) -> bytes:
+    nonce = secrets.token_bytes(NONCE_BYTES)
+    return MAGIC + nonce + AESGCM(key).encrypt(nonce, plaintext, MAGIC)
 
-    def __init__(self, conn: sqlcipher3.Connection, path: Path) -> None:
+
+def decrypt(key: bytes, blob: bytes) -> bytes:
+    if not blob.startswith(MAGIC):
+        raise StoreError("Not an MRclean store, or an unsupported format version.")
+    nonce = blob[len(MAGIC) : len(MAGIC) + NONCE_BYTES]
+    try:
+        return AESGCM(key).decrypt(nonce, blob[len(MAGIC) + NONCE_BYTES :], MAGIC)
+    except InvalidTag as exc:
+        raise StoreError("Wrong database key, or the store file was modified.") from exc
+
+
+def _atomic_write(path: Path, data: bytes) -> None:
+    tmp = path.with_name(path.name + ".tmp")
+    with tmp.open("wb") as fh:
+        fh.write(data)
+        fh.flush()
+        os.fsync(fh.fileno())
+    if sys.platform != "win32":
+        tmp.chmod(0o600)
+    os.replace(tmp, path)
+
+
+@contextmanager
+def _exclusive_lock(path: Path) -> Iterator[None]:
+    """Hold an OS-level lock so two MRclean runs can't overwrite each other."""
+    fh: IO[bytes] = path.open("a+b")
+    try:
+        try:
+            if sys.platform == "win32":
+                import msvcrt
+
+                fh.seek(0)
+                msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as exc:
+            raise StoreError("Another MRclean run is using the store; try again later.") from exc
+        yield
+    finally:
+        fh.close()  # closing the handle releases the lock on both platforms
+
+
+class Store:
+    """An in-memory SQLite connection persisted as an encrypted file."""
+
+    def __init__(self, conn: sqlite3.Connection, path: Path, key: bytes, lock) -> None:
         self.conn = conn
         self.path = path
+        self._key = key
+        self._lock = lock
 
     @classmethod
     def open(
@@ -120,29 +183,27 @@ class Store:
                     "Restore it with `mrclean key restore`."
                 )
             key = keys.create()
+        if len(key) != KEY_BYTES:
+            raise StoreError("The database key has the wrong length.")
 
-        conn = sqlcipher3.connect(str(path))
+        lock = _exclusive_lock(path.with_name(path.name + ".lock"))
+        lock.__enter__()
         try:
-            cipher = conn.execute("PRAGMA cipher_version").fetchone()
-            if not cipher or not cipher[0]:
-                raise StoreError(
-                    "SQLite library isn't SQLCipher; refusing to store data unencrypted."
-                )
-            conn.execute(f"PRAGMA key = \"x'{key.hex()}'\"")
+            conn = sqlite3.connect(":memory:")
+            if exists:
+                conn.deserialize(decrypt(key, path.read_bytes()))
             conn.execute("PRAGMA foreign_keys = ON")
-            try:
-                conn.execute("SELECT count(*) FROM sqlite_master").fetchone()
-            except sqlcipher3.DatabaseError as exc:
-                raise StoreError("Wrong database key, or the file isn't an MRclean store.") from exc
+            store = cls(conn, path, key, lock)
+            if not exists:
+                store._persist()
+            store._migrate()
         except BaseException:
-            conn.close()
+            lock.__exit__(None, None, None)
             raise
-
-        if not exists and sys.platform != "win32":
-            path.chmod(0o600)
-        store = cls(conn, path)
-        store._migrate()
         return store
+
+    def _persist(self) -> None:
+        _atomic_write(self.path, encrypt(self._key, self.conn.serialize()))
 
     def _migrate(self) -> None:
         version = self.conn.execute("PRAGMA user_version").fetchone()[0]
@@ -153,26 +214,22 @@ class Store:
             log.info("Store migrated to schema version %d", index)
 
     @contextmanager
-    def transaction(self) -> Iterator[sqlcipher3.Connection]:
+    def transaction(self) -> Iterator[sqlite3.Connection]:
+        """Commit, then persist the encrypted file; roll back on any error."""
         try:
             yield self.conn
             self.conn.commit()
         except BaseException:
             self.conn.rollback()
             raise
+        self._persist()
 
     def close(self) -> None:
         self.conn.close()
+        self._lock.__exit__(None, None, None)
 
     def __enter__(self) -> Store:
         return self
 
     def __exit__(self, *exc: object) -> None:
         self.close()
-
-
-def open_store(create: bool = False, keys: KeyProvider | None = None) -> Store:
-    return Store.open(keys=keys, create=create)
-
-
-StoreFactory = Callable[[], Store]

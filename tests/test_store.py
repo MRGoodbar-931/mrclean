@@ -48,6 +48,52 @@ def test_wrong_key_is_refused(tmp_path, keys):
         Store.open(db, StaticKeyProvider(b"\x00" * 32))
 
 
+def test_tampering_is_detected(tmp_path, keys):
+    db = tmp_path / "m.db"
+    with Store.open(db, keys, create=True) as store:
+        save_profile(store, FICTIONAL)
+    blob = bytearray(db.read_bytes())
+    blob[-5] ^= 0x01
+    db.write_bytes(bytes(blob))
+    with pytest.raises(StoreError, match="modified"):
+        Store.open(db, keys)
+
+
+def test_failed_write_keeps_previous_version(tmp_path, keys, monkeypatch):
+    db = tmp_path / "m.db"
+    with Store.open(db, keys, create=True) as store:
+        save_profile(store, FICTIONAL)
+    before = db.read_bytes()
+
+    def boom(*_a):
+        raise OSError("disk full")
+
+    with Store.open(db, keys) as store:
+        monkeypatch.setattr("mrclean.store.os.replace", boom)
+        with pytest.raises(OSError):
+            save_profile(store, Profile())
+        monkeypatch.undo()
+    assert db.read_bytes() == before
+    with Store.open(db, keys) as store:
+        assert load_profile(store) == FICTIONAL
+
+
+def test_second_concurrent_open_is_refused(tmp_path, keys):
+    db = tmp_path / "m.db"
+    with Store.open(db, keys, create=True), pytest.raises(StoreError, match="Another"):
+        Store.open(db, keys)
+    Store.open(db, keys).close()  # lock released on close
+
+
+def test_each_save_uses_a_fresh_nonce(tmp_path, keys):
+    db = tmp_path / "m.db"
+    with Store.open(db, keys, create=True) as store:
+        save_profile(store, FICTIONAL)
+        first = db.read_bytes()
+        save_profile(store, FICTIONAL)
+        assert db.read_bytes()[8:20] != first[8:20]
+
+
 def test_missing_key_for_existing_store(tmp_path, keys):
     db = tmp_path / "m.db"
     Store.open(db, keys, create=True).close()

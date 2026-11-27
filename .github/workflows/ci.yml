@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "17 14 * * 1"  # weekly: catches a new Python release breaking installs
 
 permissions:
   contents: read
@@ -12,9 +14,10 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        python: ["3.11", "3.13"]
+        python: ["3.11", "3.13", "3.x"]  # 3.x = latest stable, always
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

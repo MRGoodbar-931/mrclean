@@ -13,8 +13,12 @@ All notable changes to this project are documented here. The format follows
 - 10 seed brokers from the Big Ass Data Broker Opt-Out List: PeopleConnect (Intelius
   family), BeenVerified, Spokeo, Whitepages, MyLife, SmartBackgroundChecks, Nuwber,
   That's Them, FastPeopleSearch, Acxiom.
-- Encrypted store: SQLCipher, with a random key in the OS credential store,
-  versioned migrations, and a refusal to run on non-SQLCipher SQLite.
+- Encrypted store: SQLite kept in memory and persisted as one AES-256-GCM file
+  (`cryptography`), with a random key in the OS credential store. Writes are atomic,
+  tampering is detected, an OS lock blocks concurrent runs, and migrations are versioned.
+  SQLCipher was dropped after its bindings had no Windows wheel for Python 3.15.
+- CI tests the latest stable Python (`3.x`) on Linux and Windows, and runs weekly
+  so a new Python release that breaks installation is caught without a commit.
 - Identity profile in the store, with name x state search fan-out.
 - CLI: `key backup/restore`, `profile add/show/remove/variants`, `registry validate/list`.
   `doctor` now checks the store, the profile and the registry too.
