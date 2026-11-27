@@ -194,9 +194,11 @@ class Store:
                 conn.deserialize(decrypt(key, path.read_bytes()))
             conn.execute("PRAGMA foreign_keys = ON")
             store = cls(conn, path, key, lock)
-            if not exists:
-                store._persist()
+            # A new store is first written by the first migration's transaction:
+            # SQLite before ~3.46 can't serialize a database with zero pages.
             store._migrate()
+            if not path.exists():
+                raise StoreError("New store was not written; is MIGRATIONS empty?")
         except BaseException:
             lock.__exit__(None, None, None)
             raise
