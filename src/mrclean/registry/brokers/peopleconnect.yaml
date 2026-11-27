@@ -1,0 +1,22 @@
+id: peopleconnect
+name: PeopleConnect (Intelius family)
+url: https://www.peopleconnect.us
+category: background_check
+priority: 1
+covers: [Intelius, Instant Checkmate, TruthFinder, US Search, ZabaSearch, PeopleFinder, PeopleLookup, Addresses.com, InstantPeopleFinder]
+search:
+  method: manual
+optout:
+  method: web_form
+  url: https://suppression.peopleconnect.us/login
+  email: support@mailer.intelius.com
+  phone: "1-888-245-1655"
+  alternatives: [email, phone]
+  requires: [email]
+  verification: [email_link]
+  notes: >-
+    One suppression request covers the Intelius-owned sites. You may be asked to
+    confirm a mailing address, phone or old email so they can find the record.
+sources:
+  - https://github.com/yaelwrites/Big-Ass-Data-Broker-Opt-Out-List
+last_verified: 2026-11-26

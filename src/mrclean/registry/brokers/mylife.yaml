@@ -1,0 +1,21 @@
+id: mylife
+name: MyLife
+url: https://www.mylife.com
+category: people_search
+priority: 1
+search:
+  method: manual
+optout:
+  method: email
+  url: https://www.mylife.com/privacyrequest
+  email: privacy@mylife.com
+  phone: "888-704-1900"
+  alternatives: [web_form, phone]
+  requires: [full_name, listing_url]
+  verification: [none]
+  notes: >-
+    May ask you to create an account or send a driver's license. MRclean never sends
+    ID; push back with the profile link only, or skip.
+sources:
+  - https://github.com/yaelwrites/Big-Ass-Data-Broker-Opt-Out-List
+last_verified: 2026-11-26

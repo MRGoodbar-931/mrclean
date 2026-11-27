@@ -6,6 +6,25 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added (milestone 1)
+- Broker registry: one strict, schema-validated YAML file per broker, with
+  parent/child ordering, an opt-out mode (`auto` / `assisted` / `manual`), query-hygiene
+  limits on search templates, and freshness tracking (`last_verified`, `verified_live`).
+- 10 seed brokers from the Big Ass Data Broker Opt-Out List: PeopleConnect (Intelius
+  family), BeenVerified, Spokeo, Whitepages, MyLife, SmartBackgroundChecks, Nuwber,
+  That's Them, FastPeopleSearch, Acxiom.
+- Encrypted store: SQLite kept in memory and persisted as one AES-256-GCM file
+  (`cryptography`), with a random key in the OS credential store. Writes are atomic,
+  tampering is detected, an OS lock blocks concurrent runs, and migrations are versioned.
+  SQLCipher was dropped after its bindings had no Windows wheel for Python 3.15.
+- CI tests the latest stable Python (`3.x`) on Linux and Windows, and runs weekly
+  so a new Python release that breaks installation is caught without a commit.
+- Identity profile in the store, with name x state search fan-out.
+- CLI: `key backup/restore`, `profile add/show/remove/variants`, `registry validate/list`.
+  `doctor` now checks the store, the profile and the registry too.
+- Adding a profile identifier also registers it with the PII commit guard, and the
+  log redactor learns profile literals on every run.
+
 ### Fixed
 - Windows: the default data dir moved from `%LOCALAPPDATA%\mrclean` to
   `%USERPROFILE%\.mrclean`. Packaged (MSIX) apps such as the Claude desktop app

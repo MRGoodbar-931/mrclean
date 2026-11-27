@@ -1,0 +1,19 @@
+id: nuwber
+name: Nuwber
+url: https://nuwber.com
+category: people_search
+priority: 1
+search:
+  method: manual
+optout:
+  method: web_form
+  url: https://nuwber.com/removal/link
+  email: support@nuwber.com
+  alternatives: [email]
+  requires: [listing_url, email]
+  notes: >-
+    Use "filter by state" to find your person URL. If the form fails, email support
+    with a screenshot of the listing.
+sources:
+  - https://github.com/yaelwrites/Big-Ass-Data-Broker-Opt-Out-List
+last_verified: 2026-11-26

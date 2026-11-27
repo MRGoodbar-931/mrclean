@@ -1,0 +1,20 @@
+id: whitepages
+name: Whitepages
+url: https://www.whitepages.com
+category: people_search
+priority: 1
+covers: [411.com]
+search:
+  method: manual
+optout:
+  method: web_form
+  url: https://www.whitepages.com/suppression_requests
+  requires: [listing_url, phone]
+  verification: [phone_code]
+  notes: >-
+    Requires an automated call to a phone number with a four-digit code; use a number
+    already exposed on the listing, never a new one. Removes the free listing, not
+    necessarily Premium.
+sources:
+  - https://github.com/yaelwrites/Big-Ass-Data-Broker-Opt-Out-List
+last_verified: 2026-11-26

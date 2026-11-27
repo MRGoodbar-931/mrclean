@@ -2,18 +2,21 @@
 
 Ordered by priority. Items move to CHANGELOG.md when shipped.
 
-## Now: design (needs sign-off before build)
-- [ ] Architecture proposal: modules, run loop, state machine per broker listing.
-- [ ] Broker registry schema (YAML, public metadata only): search URL patterns,
-      opt-out method (form / email / account / mail), required fields, verification
-      steps, relisting cadence, sources.
-- [ ] Choose the encryption approach for local storage (e.g. `age`, or SQLCipher with
-      the key in the OS keyring).
+## Done
+- [x] Architecture and registry schema signed off (2026-11-26).
+- [x] M1: registry, seed brokers, encrypted store, profile.
+
+## Now: M2, scan and match
+- [ ] Walk each seed broker live: confirm the opt-out fields, then set `verified_live`.
+- [ ] Verify and add `search.url_template` per broker (all seed entries are `manual` until checked).
+- [ ] Shared HTTP client: per-domain rate limits, retry with backoff, Retry-After, redaction.
+- [ ] Per-broker canary search (a known public listing), so a broken parser is flagged
+      instead of reporting "not found".
+- [ ] Parsers with recorded fixtures, plus opt-in live smoke tests (never in CI).
+- [ ] Match scoring and a review queue.
 
 ## Next: phase 1, third-party brokers
-- [ ] Identity profile (encrypted): names (current and past), addresses, phones, emails, usernames.
-- [ ] Seed the broker registry from public sources (Big Ass Data Broker Opt-Out List,
-      the CA/VT/TX/OR broker registries, the Privacy Rights Clearinghouse database).
+- [ ] Grow the registry beyond the seed 10 (CA/VT/TX/OR registries, PRC database).
 - [ ] Scanner: polite, rate-limited, retrying HTTP plus a browser fallback for JS sites.
 - [ ] Match scoring: does a listing actually refer to the subject?
 - [ ] Removal drivers: email templates (sent from a dedicated alias), form-fill
